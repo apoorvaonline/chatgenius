@@ -49,7 +49,7 @@ Once the application is running, you can access it via your web browser at `http
 Contributions are welcome! Please submit a pull request or open an issue for any suggestions or improvements.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+No license needed.
 
 ## Contact
-For questions or feedback, please reach out to [your-email@example.com].
+For questions or feedback, please reach out to francoverma@gmai..com.
