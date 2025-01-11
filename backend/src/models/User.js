@@ -6,6 +6,19 @@ const UserSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ['online', 'away', 'dnd', 'offline'],
+    default: 'offline'
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  statusPrivacy: {
+    hidden: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    disableAutoChange: { type: Boolean, default: false }
+  }
 });
 
 // Hash password before saving

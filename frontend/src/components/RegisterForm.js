@@ -40,7 +40,7 @@ const RegisterForm = ({ onLoginSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="register-form">
       {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
       <input
         type="text"

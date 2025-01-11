@@ -30,7 +30,7 @@ ChatGenius is an AI-augmented workplace communication tool that combines the fam
 
 2\. **Channel**: { id, name, type, participants\[\] }
 
-3\. **Message**: { id, channelId, senderId, content, timestamp, fileUrl }
+3\. **Message**: { id, channel, sender, content, timestamp, fileUrl }
 
 **API Endpoints**
 
@@ -65,3 +65,210 @@ ChatGenius is an AI-augmented workplace communication tool that combines the fam
 5\. User presence and status updates (e.g., “online” or “away”).
 
 6\. Responsive UI with a clean design for mobile and desktop users.
+
+## User Status Feature
+
+### Status Types
+
+Users can have the following status states:
+
+1. **Online** (🟢) - User is actively using the application
+2. **Away** (🟡) - User is logged in but inactive
+3. **Do Not Disturb** (🔴) - User doesn't want to be disturbed
+4. **Offline** (⚫) - User is not logged in
+
+### Status Behavior
+
+#### Automatic Status Changes
+
+1. **Online to Away**
+
+   - Triggers when user is inactive for 5 minutes
+   - Inactivity defined as: no mouse movement, keyboard input, or interaction with the app
+
+2. **Away/DND to Offline**
+
+   - Triggers when user closes the browser/app
+   - Triggers on session timeout (after 24 hours of inactivity)
+   - Triggers on explicit logout
+
+3. **To Online**
+   - When user logs in
+   - When user returns from Away status by interacting with the app
+   - When user manually sets status to Online
+
+#### Manual Status Control
+
+- Users can manually set their status through a dropdown menu
+- Manual "Do Not Disturb" status won't automatically change to Away
+- Manual status settings persist until:
+  - User manually changes it
+  - User logs out
+  - Session expires
+
+### Status Display
+
+- Status indicator shown as a colored dot next to user's avatar
+- Status visible in:
+  - User list
+  - Chat messages
+  - User profile
+  - Channel member lists
+
+### Technical Requirements
+
+1. **Frontend**
+
+   - Status indicator component
+   - Status selector dropdown
+   - Idle time detection
+   - WebSocket connection for real-time status updates
+
+2. **Backend**
+
+   - Status storage in user document
+   - WebSocket events for status changes
+   - Session management
+   - API endpoints for status updates
+
+3. **Database**
+   - Add status field to user schema
+   - Add lastActive timestamp to track user activity
+
+### Privacy Considerations
+
+- Users can hide their status from specific users or groups
+- Status visibility settings in user preferences
+- Option to disable automatic status changes
+
+## Emoji Feature
+
+### Core Functionality
+
+1. **Message Composition**
+
+   - Emoji picker interface for new messages
+   - Support for both Unicode emojis and custom emojis
+   - Shortcode support (e.g., `:smile:` converts to 😊)
+   - Recently used emojis section
+   - Emoji search functionality
+
+2. **Message Reactions**
+   - Add emoji reactions to existing messages
+   - View who reacted with each emoji
+   - Remove own reactions
+   - Limit of 20 different emoji types per message
+   - Show reaction count when more than 3 users use the same emoji
+
+### Technical Requirements
+
+1. **Frontend**
+
+   - Emoji picker component
+   - Emoji reaction overlay/popup for messages
+   - Emoji rendering support
+   - Shortcode parser for message input
+   - Reaction counter and user list popup
+
+2. **Backend**
+
+   - Message schema update to support reactions
+   - API endpoints for managing reactions
+   - WebSocket events for real-time reaction updates
+   - Custom emoji storage and management
+
+3. **Database**
+   - Add reactions array to message schema:
+     ```javascript
+     reactions: [
+       {
+         emoji: String, // Unicode emoji or custom emoji ID
+         users: [userId], // Array of user IDs who reacted
+         timestamp: Date, // When the reaction was first added
+       },
+     ];
+     ```
+   - Custom emoji collection (if supporting custom emojis):
+     ```javascript
+     customEmoji: {
+       id: String,
+       name: String,
+       url: String,
+       createdBy: userId,
+       createdAt: Date
+     }
+     ```
+
+### User Experience
+
+1. **Emoji Picker**
+
+   - Accessible via button in message input
+   - Categorized emoji list (smileys, animals, objects, etc.)
+   - Search bar for finding emojis
+   - Keyboard shortcuts for quick access
+   - Recently used section showing last 20 emojis
+
+2. **Message Reactions**
+   - Click/tap on message to show reaction options
+   - Quick reaction bar for most common emojis
+   - Show reaction counts and user list on hover
+   - Animate emoji when reaction is added
+   - Group similar reactions together
+
+### Performance Considerations
+
+1. **Optimization**
+
+   - Lazy load emoji picker
+   - Cache emoji data locally
+   - Optimize reaction updates for real-time sync
+   - Limit number of reactions per message for performance
+
+2. **Storage**
+   - Efficient storage of emoji data
+   - CDN distribution for custom emojis
+   - Reaction count aggregation for messages with high engagement
+
+### Security & Validation
+
+1. **Input Validation**
+
+   - Sanitize emoji input
+   - Validate custom emoji uploads
+   - Rate limiting for reactions
+   - Permission checks for custom emoji creation
+
+2. **Access Control**
+   - Channel-specific reaction permissions
+   - Admin controls for enabling/disabling reactions
+   - Moderation tools for inappropriate reactions
+
+### Accessibility
+
+1. **Screen Reader Support**
+
+   - Proper aria labels for emojis
+   - Keyboard navigation in emoji picker
+   - Alternative text for emoji reactions
+   - Screen reader announcements for reaction updates
+
+2. **Visual Accessibility**
+   - High contrast mode support
+   - Configurable emoji sizes
+   - Clear visual indicators for selected emojis
+   - Alternative text display option
+
+### Mobile Considerations
+
+1. **Touch Interface**
+
+   - Touch-friendly emoji picker
+   - Long-press to access reactions
+   - Swipe gestures for emoji categories
+   - Mobile-optimized reaction displays
+
+2. **Performance**
+   - Reduced animation on mobile
+   - Optimized emoji picker for smaller screens
+   - Efficient loading on slower connections

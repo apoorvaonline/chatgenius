@@ -8,6 +8,9 @@ import authRoutes from './routes/auth.js';
 import Message from './models/Message.js';
 import channelRoutes from './routes/channels.js';
 import messageRoutes from './routes/messages.js';
+import userRoutes from './routes/user.js';
+import uploadRoutes from './routes/upload.js';
+import User from './models/User.js';
 
 // Initialize environment and app
 dotenv.config();
@@ -23,27 +26,23 @@ const io = new Server(server, {
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use('/channels', channelRoutes);
-app.use('/messages', messageRoutes);
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/messages', messageRoutes);
+app.use('/channels', channelRoutes);
+app.use('/users', userRoutes);
+app.use('/upload', uploadRoutes);
 
 // Socket.IO setup
 io.on('connection', (socket) => {
 
   socket.on('sendMessage', async (data) => {
     try {
-      const { sender, content, channelId } = data;
+      const { sender, content, channelId, file } = data;
       
       if (!sender || !content || !channelId) {
-        console.error('Missing required message data:', {
-          hasSender: Boolean(sender),
-          hasContent: Boolean(content),
-          hasChannelId: Boolean(channelId),
-          senderType: typeof sender,
-          channelIdType: typeof channelId
-        });
+        console.error('Missing required message data');
         return;
       }
 
@@ -51,47 +50,74 @@ io.on('connection', (socket) => {
       const message = new Message({
         sender,
         content,
-        channel: channelId
+        channel: channelId,
+        file: file || null  // Explicitly set to null if no file
       });
             
       const savedMessage = await message.save();
+      await savedMessage.populate('sender', 'name');
 
       // Transform _id to id when broadcasting
       io.to(channelId).emit('receiveMessage', {
         id: savedMessage._id.toString(),
-        sender: savedMessage.sender,
+        sender: savedMessage.sender._id.toString(),
+        senderName: savedMessage.sender.name,
         content: savedMessage.content,
         channel: savedMessage.channel,
-        timestamp: savedMessage.timestamp
+        timestamp: savedMessage.timestamp,
+        file: savedMessage.file || null  // Explicitly set to null if no file
       });
     } catch (error) {
       console.error('Error saving message:', error);
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      if (error.errors) {
-        console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
-      }
     }
   });
 
-  socket.on('joinChannel', (data) => {
-    const { channelId, name } = data;
+  socket.on('joinChannel', ({ channelId }) => {
     socket.join(channelId);
   });
 
-  socket.on('leaveChannel', (data) => {
-    const { channelId } = data;
+  socket.on('leaveChannel', ({ channelId }) => {
     socket.leave(channelId);
   });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on('updateStatus', async (data) => {
+    try {
+      const { userId, status } = data;
+      await User.findByIdAndUpdate(userId, { 
+        status,
+        lastActive: new Date()
+      });
+      
+      io.emit('userStatusChange', { userId, status });
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  });
+
+  socket.on('disconnect', async () => {
+    try {
+      // Get userId from socket (you'll need to store this when user connects)
+      const userId = socket.userId;
+      if (userId) {
+        await User.findByIdAndUpdate(userId, { 
+          status: 'offline',
+          lastActive: new Date()
+        });
+        
+        io.emit('userStatusChange', { 
+          userId, 
+          status: 'offline' 
+        });
+      }
+    } catch (error) {
+      console.error('Error updating disconnect status:', error);
+    }
   });
 });
 
 // Connect to DB and start server
 connectDB();
 server.listen(5001, () => console.log('Server running on port 5001'));
+
+// Make io available to routes
+app.set('io', io);

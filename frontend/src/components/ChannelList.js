@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
 
-const ChannelList = ({ onSelectChannel, channels, setChannels }) => {
+const ChannelList = ({ onSelectChannel, channels, setChannels, setCurrentChannel }) => {
   useEffect(() => {
     const fetchChannels = async () => {
       try {
@@ -12,13 +12,18 @@ const ChannelList = ({ onSelectChannel, channels, setChannels }) => {
           participants: channel.participants
         }));
         setChannels(transformedChannels);
+
+        const generalChannel = transformedChannels.find(channel => channel.name === 'general');
+        if (generalChannel) {
+          setCurrentChannel(generalChannel);
+        }
       } catch (error) {
         console.error('Error fetching channels:', error);
       }
     };
 
     fetchChannels();
-  }, [setChannels]);
+  }, [setChannels, setCurrentChannel]);
 
   return (
     <div className="channel-list">

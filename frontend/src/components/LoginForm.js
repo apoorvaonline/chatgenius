@@ -29,8 +29,8 @@ const LoginForm = ({ onLoginSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+    <form onSubmit={handleSubmit} className="login-form">
+      {error && <div className="error-message bg-red-50 text-red-500 p-3 rounded-md text-sm">{error}</div>}
       <input
         type="email"
         placeholder="Email"
@@ -38,6 +38,7 @@ const LoginForm = ({ onLoginSuccess }) => {
         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         disabled={isLoading}
         required
+        className="input"
       />
       <input
         type="password"
@@ -46,8 +47,13 @@ const LoginForm = ({ onLoginSuccess }) => {
         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
         disabled={isLoading}
         required
+        className="input"
       />
-      <button className="login-register-button" type="submit" disabled={isLoading}>
+      <button 
+        type="submit" 
+        disabled={isLoading}
+        className="btn btn-primary w-full"
+      >
         {isLoading ? 'Logging in...' : 'Login'}
       </button>
     </form>

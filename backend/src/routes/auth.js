@@ -6,17 +6,31 @@ import User from '../models/User.js';
 const router = Router();
 
 // Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+const auth = async (req, res, next) => {
+  try {
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Please authenticate' });
+    }
 
-  if (!token) return res.status(401).json({ error: 'Access denied' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    const userId = decoded.userId || decoded.id;
+    
+    const user = await User.findById(userId);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (!user) {
+      return res.status(401).json({ error: 'Please authenticate' });
+    }
+
     req.user = user;
     next();
-  });
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(401).json({ error: 'Please authenticate' });
+  }
 };
 
 // Register
@@ -26,7 +40,11 @@ router.post('/register', async (req, res) => {
     const user = new User({ name, email, password });
     await user.save();
     
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
     res.status(201).json({
       token,
       user: {
@@ -58,7 +76,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
     res.json({
       token,
       user: {
@@ -74,9 +96,9 @@ router.post('/login', async (req, res) => {
 });
 
 // Verify route
-router.get('/verify', authenticateToken, async (req, res) => {
+router.get('/verify', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user._id).select('-password');
     res.json({
       user: {
         id: user._id.toString(),
@@ -89,4 +111,5 @@ router.get('/verify', authenticateToken, async (req, res) => {
   }
 });
 
+export { auth };
 export default router;

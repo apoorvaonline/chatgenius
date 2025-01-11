@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const CreateChannel = ({ onChannelCreated }) => {
+const CreateChannel = ({ onChannelCreated, currentUser }) => {
   const [channelName, setChannelName] = useState('');
 
   const handleCreateChannel = async () => {
     try {
-      const response = await axios.post('http://localhost:5001/channels', { name: channelName });
+      const response = await axios.post('http://localhost:5001/channels', { 
+        name: channelName, 
+        isDM: false, 
+        participants: [currentUser.id]
+      });
       const transformedChannel = {
         id: response.data._id,
         name: response.data.name,
@@ -20,7 +24,7 @@ const CreateChannel = ({ onChannelCreated }) => {
   };
 
   return (
-    <div className="create-channel">
+    <div className="create-channel-section">
       <input
         type="text"
         value={channelName}

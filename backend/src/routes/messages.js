@@ -1,48 +1,143 @@
 import express from 'express';
 import Message from '../models/Message.js';
+import { auth } from './auth.js'; // Import auth middleware
 
 const router = express.Router();
 
-// Get messages for a specific channel
-router.get('/:channelId', async (req, res) => {
+// Add POST endpoint for messages
+router.post('/', auth, async (req, res) => {
   try {
+    const { content, channelId, senderId, file } = req.body;
     
-    // First, let's verify the channelId is valid
+    const message = new Message({
+      content,
+      channel: channelId,
+      sender: senderId,
+      file: file ? {
+        url: file.url,
+        filename: file.filename,
+        contentType: file.contentType,
+        size: file.size,
+        key: file.key
+      } : undefined
+    });
+
+    const savedMessage = await message.save();
+    
+    // Populate sender information before sending response
+    await savedMessage.populate('sender', 'name');
+    
+    res.status(201).json(savedMessage);
+  } catch (error) {
+    console.error('Error saving message:', error);
+    res.status(500).json({ error: 'Error saving message' });
+  }
+});
+
+// Get messages for a specific channel
+router.get('/:channelId', auth, async (req, res) => {
+  try {
     if (!req.params.channelId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: 'Invalid channel ID format' });
     }
 
-    // Let's do a raw find query and log the result
-    const messages = await Message.find({ channel: req.params.channelId });
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = parseInt(req.query.skip) || 0;
 
-    // Let's also log what's in the database for this channel
-    const allMessagesForChannel = await Message.find({ 
-      channel: req.params.channelId 
-    }).lean();
+    const totalMessages = await Message.countDocuments({ channel: req.params.channelId });
     
-    // Return the sorted messages
-    const sortedMessages = await Message.find({ 
+    const messages = await Message.find({ 
       channel: req.params.channelId 
-    }).sort({ timestamp: 1 });
+    })
+    .populate('sender', 'name')
+    .sort({ timestamp: -1 })
+    .skip(skip)
+    .limit(limit);
 
-    res.json(sortedMessages);
+    const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
+
+    res.json({
+      messages: sortedMessages,
+      hasMore: totalMessages > skip + limit,
+      total: totalMessages
+    });
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ error: 'Error fetching messages' });
   }
 });
 
-// Add a test route to check all messages
-router.get('/debug/all', async (req, res) => {
+// Add POST endpoint for reactions
+router.post('/:messageId/reactions', auth, async (req, res) => {
   try {
-    const allMessages = await Message.find({}).lean();
-    res.json({
-      count: allMessages.length,
-      messages: allMessages
+    
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    
+    // Ensure we have a valid user ID
+    const userId = req.user._id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Invalid user ID' });
+    }
+
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Initialize reactions array if it doesn't exist
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+
+    // Find existing reaction with this emoji
+    const existingReaction = message.reactions.find(r => r.emoji === emoji);
+
+    if (existingReaction) {
+      // Toggle user's reaction
+      const userIndex = existingReaction.users.findIndex(id => id.toString() === userId.toString());
+      if (userIndex > -1) {
+        // Remove user's reaction
+        existingReaction.users.splice(userIndex, 1);
+        if (existingReaction.users.length === 0) {
+          // Remove reaction if no users left
+          message.reactions = message.reactions.filter(r => r.emoji !== emoji);
+        }
+      } else {
+        // Add user's reaction
+        existingReaction.users.push(userId);
+      }
+    } else {
+      // Create new reaction
+      message.reactions.push({
+        emoji,
+        users: [userId]
+      });
+    }
+
+    await message.save();
+    
+    // Emit socket event to update other clients
+    req.app.get('io').to(message.channel.toString()).emit('messageReaction', {
+      messageId: message._id,
+      reactions: message.reactions
     });
+
+    res.json({ reactions: message.reactions });
   } catch (error) {
-    console.error('Error fetching all messages:', error);
-    res.status(500).json({ error: 'Error fetching messages' });
+    console.error('Detailed error:', {
+      error: error.message,
+      stack: error.stack,
+      user: req.user,
+      messageId: req.params.messageId,
+      emoji: req.body.emoji
+    });
+    res.status(500).json({ error: 'Error handling reaction' });
   }
 });
 

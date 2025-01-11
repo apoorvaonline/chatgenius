@@ -1,8 +1,22 @@
 import mongoose from 'mongoose';
 
-const ChannelSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+const channelSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  isDM: {
+    type: Boolean,
+    default: false
+  },
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-export default mongoose.model('Channel', ChannelSchema);
+export default mongoose.model('Channel', channelSchema);
