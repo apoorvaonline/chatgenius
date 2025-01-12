@@ -12,7 +12,7 @@ const LoginForm = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5001/auth/login', formData);
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/auth/login`, formData);
       localStorage.setItem('token', res.data.token);
       onLoginSuccess({
         id: res.data.user.id,

@@ -15,7 +15,7 @@ const UserList = ({ onSelectUser, currentUser, socket }) => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/users');
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/users`);
         // Filter out the current user from the list
         const otherUsers = response.data.filter(user => user._id !== currentUser.id);
         setUsers(otherUsers);

@@ -5,7 +5,7 @@ import EmojiPickerComponent from './EmojiPicker';
 import ThreadView from './ThreadView';
 
 
-const socket = io('http://localhost:5001');
+const socket = io(`${process.env.REACT_APP_BACKEND_URL}`);
 const MESSAGE_LIMIT = 50;
 
 // Create a separate Message component
@@ -259,7 +259,7 @@ const ChatWindow = ({ channel, userId }) => {
     if (senderId === userId || usersRef.current[senderId]) return;
     
     try {
-      const response = await axios.get(`http://localhost:5001/users/${senderId}`, {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/users/${senderId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setUsers(prev => ({
@@ -275,7 +275,7 @@ const ChatWindow = ({ channel, userId }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const endpoint = `http://localhost:5001/messages/${channel.id}`;
+      const endpoint = `${process.env.REACT_APP_BACKEND_URL}/messages/${channel.id}`;
       
       const response = await axios.get(
         `${endpoint}?limit=${MESSAGE_LIMIT}&skip=${skipCount}`,
@@ -289,7 +289,7 @@ const ChatWindow = ({ channel, userId }) => {
 
       const senderIds = [...new Set(newMessages.map(msg => msg.sender._id))];
       const userPromises = senderIds.map(id => 
-        axios.get(`http://localhost:5001/users/${id}`, {
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/users/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       );
@@ -405,7 +405,7 @@ const ChatWindow = ({ channel, userId }) => {
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const response = await axios.post('http://localhost:5001/upload', formData, {
+        const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/upload`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -447,7 +447,7 @@ const ChatWindow = ({ channel, userId }) => {
 
   const refreshFileUrl = useCallback(async (fileKey) => {
     try {
-      const response = await axios.get(`http://localhost:5001/upload/url/${fileKey}`, {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/upload/url/${fileKey}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       return response.data.url;
@@ -472,7 +472,7 @@ const ChatWindow = ({ channel, userId }) => {
       }
       
       const response = await axios.post(
-        `http://localhost:5001/messages/${messageId}/reactions`,
+        `${process.env.REACT_APP_BACKEND_URL}/messages/${messageId}/reactions`,
         { emoji },
         {
           headers: { 
@@ -518,7 +518,7 @@ const ChatWindow = ({ channel, userId }) => {
           return;
         }
 
-        await axios.get('http://localhost:5001/auth/verify', {
+        await axios.get(`${process.env.REACT_APP_BACKEND_URL}/auth/verify`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

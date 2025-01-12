@@ -5,7 +5,7 @@ const ChannelList = ({ onSelectChannel, channels, setChannels, setCurrentChannel
   useEffect(() => {
     const fetchChannels = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/channels');
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/channels`);
         const transformedChannels = response.data.map(channel => ({
           id: channel._id,
           name: channel.name,

@@ -3,7 +3,6 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import MessageComponent from './MessageComponent';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
 
 const ThreadView = ({ parentMessage, onClose }) => {
   const [replies, setReplies] = useState([]);
@@ -18,7 +17,7 @@ const ThreadView = ({ parentMessage, onClose }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${BACKEND_URL}/messages/${parentMessage._id}/thread`,
+        `${process.env.REACT_APP_BACKEND_URL}/messages/${parentMessage._id}/thread`,
         { content: newReply },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -41,7 +40,7 @@ const ThreadView = ({ parentMessage, onClose }) => {
         setLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `${BACKEND_URL}/messages/${parentMessage._id}/thread`,
+          `${process.env.REACT_APP_BACKEND_URL}/messages/${parentMessage._id}/thread`,
           {
             headers: { 'Authorization': `Bearer ${token}` }
           }
@@ -57,7 +56,7 @@ const ThreadView = ({ parentMessage, onClose }) => {
     loadReplies();
 
     // Set up socket listener for new replies
-    const socket = io(BACKEND_URL);
+    const socket = io(process.env.REACT_APP_BACKEND_URL);
     
     socket.on('connect', () => {
       console.log('Socket connected');

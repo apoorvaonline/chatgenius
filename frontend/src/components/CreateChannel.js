@@ -6,7 +6,7 @@ const CreateChannel = ({ onChannelCreated, currentUser }) => {
 
   const handleCreateChannel = async () => {
     try {
-      const response = await axios.post('http://localhost:5001/channels', { 
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/channels`, { 
         name: channelName, 
         isDM: false, 
         participants: [currentUser.id]

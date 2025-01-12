@@ -8,7 +8,7 @@ const NewChannelForm = ({ userId }) => {
     e.preventDefault();
     try {
       const channel = { name: channelName, participants: [userId] };
-      await axios.post('http://localhost:5001/channels', channel);
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/channels`, channel);
       alert('Channel created successfully');
       setChannelName('');
     } catch (error) {

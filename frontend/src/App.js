@@ -28,7 +28,7 @@ function App() {
       // Verify token and get user data
       const verifyAuth = async () => {
         try {
-          const response = await axios.get('http://localhost:5001/auth/verify', {
+          const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/auth/verify`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           setUser(response.data.user);
@@ -67,7 +67,7 @@ function App() {
   const handleSelectUser = async (selectedUser) => {
     try {
       // Check if DM channel exists
-      const response = await axios.get(`http://localhost:5001/channels/dm/${user.id}/${selectedUser._id}`);
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/channels/dm/${user.id}/${selectedUser._id}`);
       
       if (response.data) {
         // If DM channel exists, set it as current
@@ -80,7 +80,7 @@ function App() {
         setSelectedUser(selectedUser);
       } else {
         // Create new DM channel
-        const newChannel = await axios.post('http://localhost:5001/channels', {
+        const newChannel = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/channels`, {
           name: `dm_${user.id}_${selectedUser._id}`,
           isDM: true,
           participants: [user.id, selectedUser._id]
@@ -113,7 +113,7 @@ function App() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5001/messages/search?q=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/messages/search?q=${encodeURIComponent(query)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSearchResults(response.data);
@@ -135,7 +135,7 @@ function App() {
   }, [searchQuery]);
 
   useEffect(() => {
-    const socket = io.connect('http://localhost:5001');
+    const socket = io.connect(`${process.env.REACT_APP_BACKEND_URL}`);
     setSocket(socket);
 
     return () => {
