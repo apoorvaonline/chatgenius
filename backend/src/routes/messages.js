@@ -34,6 +34,41 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// Search messages
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      return res.json([]);
+    }
+
+    // Search in messages and populate sender information
+    const messages = await Message.find({
+      $or: [
+        { content: { $regex: q, $options: 'i' } }
+      ]
+    })
+    .populate('sender', 'name')
+    .sort({ timestamp: -1 })
+    .limit(50);
+
+    // Transform the results to include sender name
+    const results = messages.map(msg => ({
+      _id: msg._id,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      senderName: msg.sender.name,
+      channelId: msg.channel
+    }));
+
+    res.json(results);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Error performing search' });
+  }
+});
+
 // Get messages for a specific channel
 router.get('/:channelId', auth, async (req, res) => {
   try {
@@ -138,6 +173,78 @@ router.post('/:messageId/reactions', auth, async (req, res) => {
       emoji: req.body.emoji
     });
     res.status(500).json({ error: 'Error handling reaction' });
+  }
+});
+
+// Add thread reply endpoint
+router.post('/:messageId/thread', auth, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+    
+    // Find parent message
+    const parentMessage = await Message.findById(messageId);
+    if (!parentMessage) {
+      return res.status(404).json({ error: 'Parent message not found' });
+    }
+
+    // Create thread reply
+    const threadReply = new Message({
+      content,
+      sender: req.user._id,
+      channel: parentMessage.channel,
+      parentMessageId: messageId
+    });
+
+    await threadReply.save();
+
+    // Update parent message
+    parentMessage.isThreadParent = true;
+    parentMessage.threadReplyCount = (parentMessage.threadReplyCount || 0) + 1;
+    parentMessage.lastReplyTimestamp = new Date();
+    await parentMessage.save();
+
+    // Populate sender info
+    await threadReply.populate('sender', 'name');
+
+    // Emit socket event for real-time updates
+    req.app.get('io').to(parentMessage.channel.toString()).emit('threadReply', {
+      parentMessageId: messageId,
+      reply: threadReply,
+      threadReplyCount: parentMessage.threadReplyCount,
+      lastReplyTimestamp: parentMessage.lastReplyTimestamp
+    });
+
+    res.status(201).json(threadReply);
+  } catch (error) {
+    console.error('Error creating thread reply:', error);
+    res.status(500).json({ error: 'Error creating thread reply' });
+  }
+});
+
+// Get thread replies
+router.get('/:messageId/thread', auth, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = parseInt(req.query.skip) || 0;
+
+    const replies = await Message.find({ parentMessageId: messageId })
+      .populate('sender', 'name')
+      .sort({ timestamp: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalReplies = await Message.countDocuments({ parentMessageId: messageId });
+
+    res.json({
+      replies,
+      hasMore: totalReplies > skip + limit,
+      total: totalReplies
+    });
+  } catch (error) {
+    console.error('Error fetching thread replies:', error);
+    res.status(500).json({ error: 'Error fetching thread replies' });
   }
 });
 

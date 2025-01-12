@@ -818,3 +818,96 @@ body, html {
   font-size: 12px;
   color: #666;
 }
+
+/* Thread styles */
+.thread-view {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 400px;
+  background: white;
+  border-left: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.thread-header {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.thread-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.thread-parent {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.thread-replies {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.thread-input {
+  padding: 16px;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  gap: 8px;
+}
+
+.thread-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+}
+
+.thread-input button[type="submit"] {
+  align-self: stretch;
+  padding: 12px 32px;
+  background-color: #4a154b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+
+.thread-button {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.thread-button:hover {
+  color: #1264a3;
+  text-decoration: underline;
+}
+
+.thread-count {
+  font-size: 12px;
+  color: #666;
+  margin-right: 8px;
+}
+
+/* Adjust main chat area when thread is open */
+.chat-main.thread-open {
+  margin-right: 400px;
+}

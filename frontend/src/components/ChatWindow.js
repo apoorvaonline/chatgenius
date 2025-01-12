@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 import EmojiPickerComponent from './EmojiPicker';
+import ThreadView from './ThreadView';
 
 
 const socket = io('http://localhost:5001');
@@ -15,7 +16,8 @@ const MessageComponent = ({
   refreshFileUrl,
   handleReaction,
   pickerVisible,
-  setPickerVisible 
+  setPickerVisible,
+  onThreadClick
 }) => {
   const [fileUrl, setFileUrl] = useState(message.file?.url);
   const [urlError, setUrlError] = useState(false);
@@ -111,6 +113,19 @@ const MessageComponent = ({
             >
               +
             </button>
+            <div className="message-actions">
+              <button 
+                className="thread-button"
+                onClick={() => onThreadClick(message)}
+              >
+                {'Reply'}
+              </button>
+              {message.threadReplyCount > 0 && (
+                <span className="thread-count">
+                  {message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}
+                </span>
+              )}
+            </div>
           </div>
 
           {pickerVisible === message._id && (
@@ -210,6 +225,7 @@ const MessageComponent = ({
             minute: '2-digit'
           })}
         </span>
+
       </div>
       {urlError && <div className="url-refresh-message">Refreshing file access...</div>}
     </div>
@@ -232,6 +248,7 @@ const ChatWindow = ({ channel, userId }) => {
   const [pickerVisible, setPickerVisible] = useState(null);
   const inputRef = useRef(null);
   const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
+  const [selectedThread, setSelectedThread] = useState(null);
 
   // Create a ref to store users
   const usersRef = useRef(users);
@@ -501,21 +518,22 @@ const ChatWindow = ({ channel, userId }) => {
           return;
         }
 
-        const response = await axios.get('http://localhost:5001/auth/verify', {
+        await axios.get('http://localhost:5001/auth/verify', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
       } catch (error) {
         console.error('Token verification failed:', error);
-        // Optionally handle invalid token
-        // localStorage.removeItem('token');
-        // window.location.href = '/login';
       }
     };
 
     verifyToken();
   }, []);
+
+  const onThreadClick = (message) => {
+    setSelectedThread(message);
+  };
 
   return (
     <div className="chat-main">
@@ -535,6 +553,7 @@ const ChatWindow = ({ channel, userId }) => {
             handleReaction={handleReaction}
             pickerVisible={pickerVisible}
             setPickerVisible={setPickerVisible}
+            onThreadClick={onThreadClick}
           />
         ))}
         <div ref={messagesEndRef} />
@@ -605,6 +624,12 @@ const ChatWindow = ({ channel, userId }) => {
           </div>
         </form>
       </div>
+      {selectedThread && (
+        <ThreadView
+          parentMessage={selectedThread}
+          onClose={() => setSelectedThread(null)}
+        />
+      )}
     </div>
   );
 };

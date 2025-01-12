@@ -19,6 +19,22 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  isThreadParent: {
+    type: Boolean,
+    default: false
+  },
+  parentMessageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
+  },
+  threadReplyCount: {
+    type: Number,
+    default: 0
+  },
+  lastReplyTimestamp: {
+    type: Date
+  },
   file: {
     url: String,
     filename: String,

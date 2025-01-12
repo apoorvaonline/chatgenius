@@ -272,3 +272,100 @@ Users can have the following status states:
    - Reduced animation on mobile
    - Optimized emoji picker for smaller screens
    - Efficient loading on slower connections
+
+# Message Threading Feature Requirements
+
+## Overview
+
+Add support for message threads (similar to Slack) where users can create conversation threads on any message within a channel. This enables focused discussions without cluttering the main channel.
+
+## Functional Requirements
+
+### Message Thread Creation
+
+- Users can start a thread on any message in a channel
+- Only one level of threading is allowed (no nested threads)
+- The original message acts as the parent message for the thread
+- Thread replies are visually connected to the parent message
+
+### Thread Display
+
+- Parent messages with threads should show:
+  - An indicator showing number of replies
+  - Timestamp of the latest reply
+- Threads should be expandable/collapsible
+- Thread view should display:
+  - Original parent message at the top
+  - Chronological list of thread replies
+  - Clear visual distinction from main channel messages
+
+### Thread Interactions
+
+- Users can:
+  - Reply to threads
+  - Edit their own thread replies
+  - Delete their own thread replies
+  - View all participants in a thread
+  - See real-time updates in threads
+
+### Data Model Updates
+
+- Messages need to track:
+  - Thread ID (if message is part of a thread)
+  - Parent Message ID (if message is a thread reply)
+  - Reply count
+  - Latest reply timestamp
+
+### Notifications
+
+- Users should be notified when:
+  - Someone replies to their message thread
+  - Someone mentions them in a thread
+  - New replies are added to threads they're participating in
+
+### API Requirements
+
+- New endpoints needed for:
+  - Creating thread replies
+  - Fetching thread messages
+  - Updating thread status
+  - Getting thread statistics
+
+## Technical Considerations
+
+### Database Schema Updates
+
+- Message model needs new fields:
+  - isThreadParent (boolean)
+  - parentMessageId (reference)
+  - threadReplyCount (number)
+  - lastReplyTimestamp (datetime)
+
+### Real-time Updates
+
+- WebSocket events for:
+  - New thread creation
+  - New thread replies
+  - Thread updates/deletions
+
+### Performance Considerations
+
+- Efficient pagination for thread replies
+- Optimized queries for thread statistics
+- Caching strategy for active threads
+
+## User Experience Guidelines
+
+- Clear visual hierarchy between main channel and thread messages
+- Intuitive thread creation process
+- Smooth transitions between channel and thread views
+- Clear indicators for unread thread replies
+- Easy navigation between threads and main channel
+
+## Future Considerations
+
+- Thread search functionality
+- Thread bookmarking
+- Thread sharing across channels
+- Thread analytics and insights
+- Thread archiving

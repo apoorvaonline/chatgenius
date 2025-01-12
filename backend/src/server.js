@@ -117,7 +117,7 @@ io.on('connection', (socket) => {
 
 // Connect to DB and start server
 connectDB();
-server.listen(5001, () => console.log('Server running on port 5001'));
+server.listen(process.env.PORT, () => console.log('Server running on port 5001'));
 
 // Make io available to routes
 app.set('io', io);
