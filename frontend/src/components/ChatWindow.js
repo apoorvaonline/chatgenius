@@ -86,7 +86,7 @@ const MessageComponent = ({
     <div className="message">
       <div className="message-content">
         <span className="sender-name">
-          {message.sender === userId ? 'You' : (users[message.sender] || 'Unknown User')}
+          {message.sender._id === userId || message.sender === userId ? 'You' : (message.sender.name || users[message.sender] || 'Unknown User')}
         </span>
         <div className="message-body">
           <span className="message-text">{message.content}</span>
@@ -336,6 +336,7 @@ const ChatWindow = ({ channel, userId }) => {
 
     const handleNewMessage = async (message) => {
       // Fetch user info if needed, but don't make the effect depend on it
+      console.log(`Message sender: ${message.sender}`);
       fetchUserInfo(message.sender);
       setMessages(prev => [...prev, message]);
     };
@@ -433,6 +434,7 @@ const ChatWindow = ({ channel, userId }) => {
         file: fileData,
       };
 
+      console.log(`Message data: ${messageData.sender}`);
       socket.emit('sendMessage', messageData);
       setNewMessage('');
       setSelectedFile(null);
