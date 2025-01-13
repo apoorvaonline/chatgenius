@@ -82,7 +82,8 @@ router.get('/:channelId', auth, async (req, res) => {
     const totalMessages = await Message.countDocuments({ channel: req.params.channelId });
     
     const messages = await Message.find({ 
-      channel: req.params.channelId 
+      channel: req.params.channelId,
+      parentMessageId: null
     })
     .populate('sender', 'name')
     .sort({ timestamp: -1 })

@@ -86,7 +86,7 @@ const MessageComponent = ({
     <div className="message">
       <div className="message-content">
         <span className="sender-name">
-          {message.sender._id === userId ? 'You' : (message.sender.name || users[message.sender._id] || 'Unknown User')}
+          {message.sender === userId ? 'You' : (users[message.sender] || 'Unknown User')}
         </span>
         <div className="message-body">
           <span className="message-text">{message.content}</span>
