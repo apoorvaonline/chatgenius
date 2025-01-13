@@ -16,9 +16,15 @@ import User from './models/User.js';
 dotenv.config();
 const app = express();
 const server = http.createServer(app); // Wrap Express app with HTTP server
+
+const allowedOrigins = [
+  'https://chatgenius-pink.vercel.app/', // Vercel-deployed front end
+  'http://66.42.26.225:3000',        	// My local machine
+];
+
 const io = new Server(server, {
   cors: {
-    origin: '*', // Allow all origins (adjust for production)
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
@@ -39,6 +45,7 @@ io.on('connection', (socket) => {
 
   socket.on('sendMessage', async (data) => {
     try {
+      console.log(`Received sendMessage event with data: ${JSON.stringify(data, null, 2)}`);
       const { sender, content, channelId, file } = data;
       
       if (!sender || !content || !channelId) {
