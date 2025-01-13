@@ -5,11 +5,10 @@ import EmojiPickerComponent from './EmojiPicker';
 import ThreadView from './ThreadView';
 
 
-const socket = io(`${process.env.REACT_APP_BACKEND_URL}`);
-// Debug connection status
-socket.on('connect', () => console.log("Socket connected successfully"));
+const socket = io(process.env.REACT_APP_BACKEND_URL, {
+  transports: ['websocket', 'polling'],
+});
 socket.on('connect_error', (err) => console.error("Socket connection error:", err));
-socket.on('disconnect', (reason) => console.warn("Socket disconnected:", reason));
 const MESSAGE_LIMIT = 50;
 
 // Create a separate Message component
@@ -340,7 +339,7 @@ const ChatWindow = ({ channel, userId }) => {
 
     const handleNewMessage = async (message) => {
       // Fetch user info if needed, but don't make the effect depend on it
-      console.log(`Message received with data: ${JSON.stringify(message, null, 2)}`);
+      console.log(`Message received with data: ${message.sender}`);
       fetchUserInfo(message.sender);
       setMessages(prev => [...prev, message]);
     };
