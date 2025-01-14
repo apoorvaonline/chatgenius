@@ -4,10 +4,17 @@ import axios from 'axios';
 import EmojiPickerComponent from './EmojiPicker';
 import ThreadView from './ThreadView';
 
+// const socket = io(process.env.REACT_APP_BACKEND_URL, {
+//   transports: ['websocket', 'polling'],
+// });
 
-const socket = io('http://ec2-3-141-0-15.us-east-2.compute.amazonaws.com:5000', {
+const socket = io(process.env.REACT_APP_BACKEND_URL, {
   transports: ['websocket', 'polling'],
+  secure: window.location.protocol === 'https:',
+  reconnection: true,
+  rejectUnauthorized: false, // Only if HTTPS backend is not yet configured
 });
+
 socket.on('connect_error', (err) => console.error("Socket connection error:", err));
 const MESSAGE_LIMIT = 50;
 
