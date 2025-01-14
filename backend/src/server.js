@@ -17,18 +17,6 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app); // Wrap Express app with HTTP server
 
-// const allowedOrigins = [
-//   'https://chatgenius-pink.vercel.app/', // Vercel-deployed front end
-//   'http://66.42.26.225:3000',        	// My local machine
-// ];
-
-// const io = new Server(server, {
-//   cors: {
-//     origin: allowedOrigins,
-//     methods: ['GET', 'POST'],
-//   },
-// });
-
 const allowedOrigins = [
   'https://chatgenius-pink.vercel.app/', 
   'http://localhost:3000',
@@ -36,13 +24,7 @@ const allowedOrigins = [
 
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true); // Allow request
-      } else {
-        callback(new Error('Not allowed by CORS')); // Reject request
-      }
-    },
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
