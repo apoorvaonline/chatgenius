@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://ec2-3-141-0-15.us-east-2.compute.amazonaws.com:5000/:path*"
+      "destination": "https://francoverma.com/:path*"
     }
   ]
 }
