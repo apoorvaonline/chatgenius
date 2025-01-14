@@ -12,16 +12,14 @@ import userRoutes from './routes/user.js';
 import uploadRoutes from './routes/upload.js';
 import User from './models/User.js';
 
-// Initialize environment and app
+// Initialize environment and app 
 dotenv.config();
 const app = express();
 const server = http.createServer(app); // Wrap Express app with HTTP server
 
 const allowedOrigins = [
-  'https://chatgenius-pink.vercel.app/', 
+  'https://chatgenius-pink.vercel.app', 
   'http://localhost:3000',
-  'https://francoverma.com',
-  'https://www.francoverma.com',
 ];
 
 const io = new Server(server, {
@@ -52,7 +50,6 @@ io.on('connection', (socket) => {
 
   socket.on('sendMessage', async (data) => {
     try {
-      console.log(`Received sendMessage event with data: ${JSON.stringify(data, null, 2)}`);
       const { sender, content, channelId, file } = data;
       
       if (!sender || !content || !channelId) {

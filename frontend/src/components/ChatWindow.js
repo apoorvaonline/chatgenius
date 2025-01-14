@@ -6,7 +6,6 @@ import ThreadView from './ThreadView';
 
 const socket = io(process.env.REACT_APP_BACKEND_URL);
 
-socket.on('connect_error', (err) => console.error("Socket connection error:", err));
 const MESSAGE_LIMIT = 50;
 
 // Create a separate Message component
@@ -337,7 +336,6 @@ const ChatWindow = ({ channel, userId }) => {
 
     const handleNewMessage = async (message) => {
       // Fetch user info if needed, but don't make the effect depend on it
-      console.log(`Message received with data: ${message.sender}`);
       fetchUserInfo(message.sender);
       setMessages(prev => [...prev, message]);
     };
@@ -435,7 +433,6 @@ const ChatWindow = ({ channel, userId }) => {
         file: fileData,
       };
 
-      console.log(`Emitting sendMessage event with data: ${JSON.stringify(messageData, null, 2)}`);
       socket.emit('sendMessage', messageData);
       setNewMessage('');
       setSelectedFile(null);
