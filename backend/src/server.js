@@ -20,6 +20,8 @@ const server = http.createServer(app); // Wrap Express app with HTTP server
 const allowedOrigins = [
   'https://chatgenius-pink.vercel.app/', 
   'http://localhost:3000',
+  'https://francoverma.com',
+  'https://www.francoverma.com',
 ];
 
 const io = new Server(server, {
