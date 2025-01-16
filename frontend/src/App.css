@@ -911,3 +911,38 @@ body, html {
 .chat-main.thread-open {
   margin-right: 400px;
 }
+
+.ai-indicator {
+  font-size: 0.9em;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+.user-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px;
+}
+
+.ai-typing-indicator {
+  padding: 10px;
+  margin: 10px;
+  color: #666;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-typing-indicator::after {
+  content: "...";
+  animation: typing 1.5s infinite;
+}
+
+@keyframes typing {
+  0% { content: "." }
+  33% { content: ".." }
+  66% { content: "..." }
+}

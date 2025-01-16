@@ -249,6 +249,7 @@ const ChatWindow = ({ channel, userId }) => {
   const inputRef = useRef(null);
   const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
   const [selectedThread, setSelectedThread] = useState(null);
+  const [aiTyping, setAiTyping] = useState(false);
 
   // Create a ref to store users
   const usersRef = useRef(users);
@@ -336,6 +337,8 @@ const ChatWindow = ({ channel, userId }) => {
 
     const handleNewMessage = async (message) => {
       // Fetch user info if needed, but don't make the effect depend on it
+
+      console.log('message.sender', message.sender);
       fetchUserInfo(message.sender);
       setMessages(prev => [...prev, message]);
     };
@@ -351,12 +354,20 @@ const ChatWindow = ({ channel, userId }) => {
       );
     });
 
+    // Add AI typing indicator listener
+    socket.on('aiTyping', ({ channelId, isTyping }) => {
+      if (channelId === channel.id) {
+        setAiTyping(isTyping);
+      }
+    });
+
     return () => {
       socket.off('receiveMessage', handleNewMessage);
       if (channel && channel.id) {
         socket.emit('leaveChannel', { channelId: channel.id });
       }
       socket.off('messageReaction');
+      socket.off('aiTyping');
     };
   }, [channel, loadMessages, fetchUserInfo]); // Remove users from dependencies
 
@@ -556,6 +567,11 @@ const ChatWindow = ({ channel, userId }) => {
             onThreadClick={onThreadClick}
           />
         ))}
+        {aiTyping && (
+          <div className="ai-typing-indicator">
+            Racking my brain
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
       <div className="message-input">

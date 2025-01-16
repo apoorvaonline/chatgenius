@@ -23,7 +23,7 @@ const ThreadView = ({ parentMessage, onClose }) => {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-      setReplies([...replies, response.data]);
+      setReplies(prevReplies => [...prevReplies, ...response.data]);
       setNewReply('');
       
       if (messagesEndRef.current) {

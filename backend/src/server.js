@@ -11,6 +11,7 @@ import messageRoutes from './routes/messages.js';
 import userRoutes from './routes/user.js';
 import uploadRoutes from './routes/upload.js';
 import User from './models/User.js';
+import messageService from './services/messageService.js';
 
 // Initialize environment and app 
 dotenv.config();
@@ -57,27 +58,8 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Create and save the message
-      const message = new Message({
-        sender,
-        content,
-        channel: channelId,
-        file: file || null  // Explicitly set to null if no file
-      });
-            
-      const savedMessage = await message.save();
-      await savedMessage.populate('sender', 'name');
-
-      // Transform _id to id when broadcasting
-      io.to(channelId).emit('receiveMessage', {
-        id: savedMessage._id.toString(),
-        sender: savedMessage.sender._id.toString(),
-        senderName: savedMessage.sender.name,
-        content: savedMessage.content,
-        channel: savedMessage.channel,
-        timestamp: savedMessage.timestamp,
-        file: savedMessage.file || null  // Explicitly set to null if no file
-      });
+      await messageService.saveMessage({ sender, content, channelId, file });
+      
     } catch (error) {
       console.error('Error saving message:', error);
     }
@@ -132,3 +114,9 @@ server.listen(process.env.PORT, () => console.log('Server running on port', proc
 
 // Make io available to routes
 app.set('io', io);
+
+// Make saveMessage available to routes
+app.set('saveMessage', messageService.saveMessage.bind(messageService));
+
+// After creating the io instance
+global.io = io;

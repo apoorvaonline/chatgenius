@@ -18,7 +18,8 @@ const UserSchema = new Schema({
   statusPrivacy: {
     hidden: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     disableAutoChange: { type: Boolean, default: false }
-  }
+  },
+  isAI: { type: Boolean, default: false }
 });
 
 // Hash password before saving

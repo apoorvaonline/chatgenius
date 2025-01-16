@@ -4,36 +4,6 @@ import { auth } from './auth.js'; // Import auth middleware
 
 const router = express.Router();
 
-// Add POST endpoint for messages
-router.post('/', auth, async (req, res) => {
-  try {
-    const { content, channelId, senderId, file } = req.body;
-    
-    const message = new Message({
-      content,
-      channel: channelId,
-      sender: senderId,
-      file: file ? {
-        url: file.url,
-        filename: file.filename,
-        contentType: file.contentType,
-        size: file.size,
-        key: file.key
-      } : undefined
-    });
-
-    const savedMessage = await message.save();
-    
-    // Populate sender information before sending response
-    await savedMessage.populate('sender', 'name');
-    
-    res.status(201).json(savedMessage);
-  } catch (error) {
-    console.error('Error saving message:', error);
-    res.status(500).json({ error: 'Error saving message' });
-  }
-});
-
 // Search messages
 router.get('/search', async (req, res) => {
   try {
@@ -91,7 +61,7 @@ router.get('/:channelId', auth, async (req, res) => {
     .limit(limit);
 
     const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
-
+   
     res.json({
       messages: sortedMessages,
       hasMore: totalMessages > skip + limit,
@@ -189,34 +159,22 @@ router.post('/:messageId/thread', auth, async (req, res) => {
       return res.status(404).json({ error: 'Parent message not found' });
     }
 
-    // Create thread reply
-    const threadReply = new Message({
+    // Use shared saveMessage function
+    const saveMessage = req.app.get('saveMessage');
+    const messages = await saveMessage({
       content,
       sender: req.user._id,
-      channel: parentMessage.channel,
+      channelId: parentMessage.channel,
       parentMessageId: messageId
     });
 
-    await threadReply.save();
-
     // Update parent message
     parentMessage.isThreadParent = true;
-    parentMessage.threadReplyCount = (parentMessage.threadReplyCount || 0) + 1;
+    parentMessage.threadReplyCount = (parentMessage.threadReplyCount || 0) + messages.length;
     parentMessage.lastReplyTimestamp = new Date();
     await parentMessage.save();
 
-    // Populate sender info
-    await threadReply.populate('sender', 'name');
-
-    // Emit socket event for real-time updates
-    req.app.get('io').to(parentMessage.channel.toString()).emit('threadReply', {
-      parentMessageId: messageId,
-      reply: threadReply,
-      threadReplyCount: parentMessage.threadReplyCount,
-      lastReplyTimestamp: parentMessage.lastReplyTimestamp
-    });
-
-    res.status(201).json(threadReply);
+    res.status(201).json(messages);
   } catch (error) {
     console.error('Error creating thread reply:', error);
     res.status(500).json({ error: 'Error creating thread reply' });

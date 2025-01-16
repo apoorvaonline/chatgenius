@@ -16,8 +16,14 @@ const UserList = ({ onSelectUser, currentUser, socket }) => {
     const fetchUsers = async () => {
       try {
         const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/users`);
-        // Filter out the current user from the list
-        const otherUsers = response.data.filter(user => user._id !== currentUser.id);
+        // Filter out the current user from the list and sort AI users first
+        const otherUsers = response.data
+          .filter(user => user._id !== currentUser.id)
+          .sort((a, b) => {
+            if (a.isAI && !b.isAI) return -1;
+            if (!a.isAI && b.isAI) return 1;
+            return a.name.localeCompare(b.name);
+          });
         setUsers(otherUsers);
         
         // Initialize statuses
@@ -56,7 +62,10 @@ const UserList = ({ onSelectUser, currentUser, socket }) => {
         {users.map((user) => (
           <li key={user._id} onClick={() => onSelectUser(user)}>
             <span className="user-list-item">
-              <span>{user.name}</span>
+              <span>
+                {user.name}
+                {user.isAI && <span role="img" aria-label="AI User" className="ai-indicator"> 🤖</span>}
+              </span>
               <span className="status-indicator">
                 <span 
                   role="img" 
