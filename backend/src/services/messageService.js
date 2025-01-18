@@ -40,13 +40,20 @@ class MessageService {
     const savedMessage = await message.save();
     await savedMessage.populate('sender', 'name');
     
-    // Check if this message is sent to an AI user
+    // Get channel for AI checks and indexing
     const channel = await Channel.findById(channelId).populate('participants');
+    
+    // Index all messages asynchronously without waiting
+    this.indexMessageForSnoopervisor(savedMessage, channel).catch(error => 
+      console.error('Background indexing error:', error)
+    );
+    
+    // Check if this message is sent to an AI user
     if (channel && channel.isDM) {
       const aiUser = channel.participants.find(p => p.isAI);
       
       if (aiUser && aiUser._id.toString() !== sender.toString()) {
-        // First, emit the user's message with correct format
+        // First, emit the user's message
         const io = global.io;
         io.to(channelId).emit('receiveMessage', {
           _id: savedMessage._id.toString(),
@@ -58,17 +65,34 @@ class MessageService {
           file: savedMessage.file || null
         });
 
-        // Then emit a "typing" indicator for AI
+        // Show typing indicator
         io.to(channelId).emit('aiTyping', { channelId, isTyping: true });
 
         try {
-          // Generate AI response asynchronously
-          const aiResponse = await this.generateAIResponse(content, aiUser._id, channelId, parentMessageId);
+          // Generate AI response based on the AI user
+          let aiResponse;
+          if (aiUser.name === "Snoopervisor") {
+            const response = await this.generateSnoopervisorResponse(content, sender, channelId);
+            aiResponse = new Message({
+              sender: aiUser._id,
+              content: response,
+              channel: channelId,
+              parentMessageId,
+              file: null
+            });
+            await aiResponse.save();
+          } else {
+            // Galaxy Gagster or other AI
+            const response = await this.generateAIResponse(content, aiUser._id, channelId, parentMessageId);
+            aiResponse = response;
+          }
+          
+          await aiResponse.populate('sender', 'name');
           
           // Stop typing indicator
           io.to(channelId).emit('aiTyping', { channelId, isTyping: false });
           
-          // Emit AI response with correct format
+          // Emit AI response
           io.to(channelId).emit('receiveMessage', {
             _id: aiResponse._id.toString(),
             sender: aiResponse.sender._id.toString(),
@@ -103,6 +127,160 @@ class MessageService {
     return [savedMessage];
   }
 
+  async indexMessageForSnoopervisor(message, channel) {
+    try {
+      const scriptPath = path.join(__dirname, '..', 'ai');
+      const options = {
+        mode: 'json',
+        pythonPath: 'python3',
+        scriptPath: scriptPath,
+        args: [
+          'index',
+          JSON.stringify({
+            _id: message._id.toString(),
+            content: message.content,
+            channel: channel._id.toString(),
+            channelName: channel.name,
+            sender: message.sender._id.toString(),
+            senderName: message.sender.name,
+            timestamp: message.timestamp,
+            isDM: channel.isDM,
+            dmParticipants: channel.isDM ? channel.participants.map(p => p._id.toString()) : []
+          })
+        ]
+      };
+
+      // Add timeout to prevent hanging
+      const timeoutMs = 30000; // 30 seconds timeout
+      const indexingPromise = new Promise((resolve, reject) => {
+        const pythonProcess = new PythonShell('snoopervisor_wrapper.py', options);
+        
+        let output = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          output += data;
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+          console.error('Python stderr:', data);
+        });
+
+        pythonProcess.end((err, code, signal) => {
+          if (err) {
+            console.error('Python process error:', err);
+            reject(err);
+          } else {
+            try {
+              const result = JSON.parse(output);
+              resolve(result);
+            } catch (parseError) {
+              console.error('Error parsing Python output:', parseError);
+              reject(parseError);
+            }
+          }
+        });
+      });
+
+      const result = await Promise.race([
+        indexingPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Indexing operation timed out')), timeoutMs)
+        )
+      ]);
+
+      if (!result || !result.success) {
+        throw new Error('Failed to index message: ' + JSON.stringify(result));
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error indexing message for Snoopervisor:', error);
+      throw error; // Re-throw to handle in the caller
+    }
+  }
+
+  async generateSnoopervisorResponse(content, userId, channelId) {
+    try {      
+      // Get all channels the user has access to
+      const user = await User.findById(userId);
+      const accessibleChannels = await Channel.find({
+        $or: [
+          { isDM: false }, // All public channels
+          { isDM: true, participants: userId } // DMs where user is participant
+        ]
+      });
+      
+      const channelIds = accessibleChannels.map(c => c._id.toString());
+
+      const scriptPath = path.join(__dirname, '..', 'ai');
+      const options = {
+        mode: 'json',
+        pythonPath: 'python3',
+        scriptPath: scriptPath,
+        args: [
+          'query',
+          content,
+          JSON.stringify(channelIds),
+          userId.toString()
+        ]
+      };
+
+      // Add timeout to prevent hanging
+      const timeoutMs = 30000; // 30 seconds timeout
+      const responsePromise = new Promise((resolve, reject) => {
+        const pythonProcess = new PythonShell('snoopervisor_wrapper.py', options);
+        
+        let output = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          output += data;
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+          console.error('Python stderr:', data);
+        });
+
+        pythonProcess.end((err, code, signal) => {
+          if (err) {
+            console.error('Python process error:', err);
+            reject(err);
+          } else {
+            try {
+              const result = JSON.parse(output);
+              resolve(result);
+            } catch (parseError) {
+              console.error('Error parsing Python output:', parseError);
+              reject(parseError);
+            }
+          }
+        });
+      });
+
+      const result = await Promise.race([
+        responsePromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Response generation timed out')), timeoutMs)
+        )
+      ]);
+
+      // Log debug info if available
+      if (result?.response?.debug) {
+        console.log('Snoopervisor debug info:', JSON.stringify(result.response.debug, null, 2));
+      }
+
+      // Extract just the response text, handling nested response
+      const responseText = result?.response?.response || result?.response;
+      if (!responseText || typeof responseText !== 'string') {
+        throw new Error('Invalid response format: ' + JSON.stringify(result));
+      }
+
+      return responseText;
+    } catch (error) {
+      console.error('Error generating Snoopervisor response:', error);
+      return "I apologize, but I encountered an error while processing your question. Please try again.";
+    }
+  }
+
   async generateAIResponse(content, aiUserId, channelId, parentMessageId) {
     try {      
       // Get absolute paths
@@ -130,7 +308,6 @@ class MessageService {
         let output = '';
         
         pyshell.stdout.on('data', (data) => {
-          console.log('Python stdout:', data);
           output += data;
         });
 
@@ -143,7 +320,6 @@ class MessageService {
             console.error('Python shell error:', err);
             reject(err);
           } else {
-            console.log('Python shell completed. Output:', output);
             resolve(output || "Sorry, I couldn't process that request.");
           }
         });

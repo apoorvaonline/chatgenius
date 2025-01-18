@@ -1,6 +1,8 @@
 import express from 'express';
 import Message from '../models/Message.js';
-import { auth } from './auth.js'; // Import auth middleware
+import { auth } from './auth.js';
+import Channel from '../models/Channel.js';
+import messageService from '../services/messageService.js';
 
 const router = express.Router();
 
@@ -204,6 +206,72 @@ router.get('/:messageId/thread', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching thread replies:', error);
     res.status(500).json({ error: 'Error fetching thread replies' });
+  }
+});
+
+// Index historical messages for Snoopervisor
+router.post('/index-historical', auth, async (req, res) => {
+  try {
+    // Get all messages from public channels and user's DMs
+    const messages = await Message.find()
+      .populate('sender', 'name')
+      .populate({
+        path: 'channel',
+        populate: {
+          path: 'participants'
+        }
+      });
+    
+    console.log(`Found ${messages.length} total messages`);
+    
+    let indexedCount = 0;
+    let errorCount = 0;
+    const batchSize = 10; // Process 10 messages at a time
+    
+    // Process messages in batches
+    for (let i = 0; i < messages.length; i += batchSize) {
+      const batch = messages.slice(i, i + batchSize);
+      console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(messages.length / batchSize)}`);
+      
+      // Process each message in the batch
+      await Promise.all(batch.map(async (message) => {
+        try {
+          console.log(`Indexing message ${message._id} from channel ${message.channel._id}`);
+          await messageService.indexMessageForSnoopervisor(message, message.channel);
+          indexedCount++;
+          console.log(`Successfully indexed message ${message._id}. Total indexed: ${indexedCount}`);
+        } catch (error) {
+          errorCount++;
+          console.error(`Error indexing message ${message._id}:`, error);
+        }
+      }));
+      
+      // Add a small delay between batches to prevent overwhelming the service
+      if (i + batchSize < messages.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay between batches
+      }
+      
+      // Send progress update
+      const progress = {
+        totalMessages: messages.length,
+        processedMessages: i + batch.length,
+        indexedCount,
+        errorCount,
+        percentComplete: Math.round(((i + batch.length) / messages.length) * 100)
+      };
+      console.log('Progress:', progress);
+    }
+    
+    console.log(`Indexing complete. Total messages: ${messages.length}, Indexed: ${indexedCount}, Errors: ${errorCount}`);
+    res.json({ 
+      success: true, 
+      totalMessages: messages.length,
+      indexedCount,
+      errorCount
+    });
+  } catch (error) {
+    console.error('Error indexing historical messages:', error);
+    res.status(500).json({ error: 'Failed to index historical messages' });
   }
 });
 

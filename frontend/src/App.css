@@ -97,7 +97,7 @@ body, html {
 }
 
 .channel-list li {
-  padding: 0;
+  padding: 3px 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -625,7 +625,6 @@ body, html {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 4px 8px;
 }
 
 /* Add these styles to your existing CSS */
@@ -916,14 +915,6 @@ body, html {
   font-size: 0.9em;
   margin-left: 4px;
   opacity: 0.8;
-}
-
-.user-list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 8px;
 }
 
 .ai-typing-indicator {
